@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Placements.io Postman Generator</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --success: #16a34a; /* Green for Excel */
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 40px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        h1 { margin-top: 0; font-size: 1.5rem; color: var(--primary); }
+        h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 10px; }
+
+        /* Left Column Controls */
+        .controls {
+            background: var(--card);
+            padding: 25px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            height: 85vh; 
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 1rem;
+            background-color: #fff;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 8px 12px;
+            margin-bottom: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        .utility-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+
+        .btn-sm {
+            background: #eff6ff;
+            color: var(--primary);
+            border: 1px solid #bfdbfe;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .btn-sm:hover { background: #dbeafe; }
+
+        .field-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            border-top: 1px solid var(--border);
+            padding-top: 10px;
+        }
+
+        .field-item {
+            display: flex;
+            align-items: center;
+            padding: 6px 8px;
+            border-radius: 4px;
+            transition: background 0.1s;
+        }
+        .field-item:hover { background-color: #f1f5f9; }
+        .field-item input { margin-right: 12px; transform: scale(1.2); cursor: pointer; accent-color: var(--primary); }
+        .field-item label { cursor: pointer; flex-grow: 1; font-family: 'Consolas', 'Monaco', monospace; font-size: 0.9rem; color: #334155; }
+
+        /* Right Column Outputs */
+        .outputs { display: flex; flex-direction: column; gap: 20px; }
+
+        .output-group {
+            background: var(--card);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .code-block {
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+            font-size: 0.85rem;
+            position: relative;
+            border: 1px solid #334155;
+        }
+
+        textarea.code-block {
+            width: 100%;
+            height: 300px;
+            box-sizing: border-box;
+            resize: vertical;
+            border: 1px solid #334155;
+        }
+
+        .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+
+        .btn {
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: opacity 0.2s;
+        }
+        .btn:hover { opacity: 0.9; }
+
+        .btn-copy { background: var(--primary); color: white; }
+        
+        /* Excel Button Style */
+        .btn-excel { 
+            background: var(--success); 
+            color: white; 
+            display: flex; 
+            align-items: center; 
+            gap: 8px;
+        }
+        
+        .data-preview {
+            font-family: 'Consolas', monospace;
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-top: 10px;
+            padding: 10px;
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="controls">
+        <h1>Placements.io Builder</h1>
+        
+        <select id="resourceSelect">
+            <option value="" disabled selected>-- Select Resource Object --</option>
+            </select>
+
+        <div id="toolsWrapper" style="display:none; flex-direction: column;">
+            <input type="text" id="fieldSearch" class="search-box" placeholder="Search attributes (e.g. 'cost')..." onkeyup="filterFields()">
+            
+            <div class="utility-bar">
+                <span id="fieldCount">0 attributes</span>
+                <div>
+                    <button class="btn-sm" onclick="toggleAll(true)">Select All</button>
+                    <button class="btn-sm" onclick="toggleAll(false)">Clear</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="fieldContainer" class="field-list">
+            <div style="text-align: center; color: #94a3b8; margin-top: 40px;">
+                Select a resource above to load attributes.
+            </div>
+        </div>
+    </div>
+
+    <div class="outputs">
+        
+        <div class="output-group">
+            <div class="header-row">
+                <h2>1. Postman URL</h2>
+                <button class="btn btn-copy" onclick="copyToClipboard('urlOutput')">Copy</button>
+            </div>
+            <div id="urlOutput" class="code-block">https://api.placements.io/v1/...</div>
+        </div>
+
+        <div class="output-group" style="border-color: var(--success);">
+            <div class="header-row">
+                <h2 style="color: var(--success);">2. Data Template</h2>
+                <button class="btn btn-excel" onclick="downloadCSV()">
+                    Download Excel/CSV
+                </button>
+            </div>
+            <div class="data-preview">
+                <strong>Preview headers:</strong><br>
+                <span id="csvPreview">id...</span>
+            </div>
+        </div>
+
+        <div class="output-group">
+            <div class="header-row">
+                <h2>3. JSON Body</h2>
+                <button class="btn btn-copy" onclick="copyToClipboard('jsonOutput')">Copy JSON</button>
+            </div>
+            <textarea id="jsonOutput" class="code-block" readonly></textarea>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // ======================================================
+    // DATA CONFIGURATION
+    // ======================================================
+    const RESOURCES = {
+        "accounts": {
+            label: "Accounts",
+            endpoint: "accounts",
+            type: "accounts",
+            fields: [
+                "account-type", "ad-server-info", "advertiser-of-record", "agency-of-record", "archived", 
+                "category", "city", "commission", "contacts", "country", "created-at", "credit-status", 
+                "currency-code", "custom-fields", "description", "email", "external-id", "fax", 
+                "freewheel-industries", "id", "last-modified", "madhive-iab-category-id", "name", 
+                "netsuite-id", "octillion-iab-category-id", "payment-terms", "phone", "salesforce-id", 
+                "state", "street-address1", "street-address2", "time-zone", "uid", "website", 
+                "yahoo_dsp_iab_category_id", "yahoo_dsp_iab_secondary_category_id", "zip"
+            ]
+        },
+        "campaigns": {
+            label: "Campaigns",
+            endpoint: "campaigns",
+            type: "campaigns",
+            fields: [
+                "ad-server-info", "approval-status", "archived", "billing-cap", "billing-period", 
+                "billing-schedule", "billing-source", "budget", "campaign-agency-commission", 
+                "campaign-number", "currency-code", "custom-fields", "delivery-status", "description", 
+                "end-date", "external-id", "id", "last-modified", "name", "payment-terms", "po-number", 
+                "primary-salesperson-info", "probability", "sales-planner-info", 
+                "secondary-salespeople-info", "start-date", "time-zone", "trafficker-info"
+            ]
+        },
+        "line-items": {
+            label: "Line Items",
+            endpoint: "line-items",
+            type: "line-items",
+            fields: [
+                "ad-locations", "ad-server", "ad-server-id", "ad-server-network-code", "approval-status", 
+                "archived", "bid", "billing-cap", "billing-schedule", "billing-source", 
+                "companion-delivery-option", "content-targeting", "contracted-units", "copied-from-id", 
+                "cost-basis", "cost-of-goods-sold", "cost-per-unit", "creative-sizes", "currency-code", 
+                "custom-fields", "delivery-rate-type", "delivery-stats", "delivery-status", "description", 
+                "end-date", "environment-type", "external-id", "frequency-caps", "geo-targeting", "goal", 
+                "id", "inventory-targeting", "item-type", "last-modified", "line-item-number", "name", 
+                "pacing-acceleration", "priority", "profit-margin", "revision-status", "roadblocking-type", 
+                "start-date", "time-zone", "total-booked", "uid", "units", "video-max-duration"
+            ]
+        },
+        "groups": {
+            label: "Groups",
+            endpoint: "groups",
+            type: "groups",
+            fields: [
+                "ad-server", "ad-server-id", "ad-server-network-code", "archived", "billing-cap", 
+                "billing-schedule", "billing-source", "budget", "contracted-units", "cost-basis", 
+                "cost-per-unit", "currency-code", "custom-fields", "daily-budget", "description", 
+                "end-date", "funding-source", "id", "last-modified", "lifetime-budget", "name", 
+                "objective", "po-number", "pricing-budget-type", "shared-budget", "start-date", "time-zone"
+            ]
+        }
+    };
+
+    // ======================================================
+    // LOGIC
+    // ======================================================
+    
+    const resourceSelect = document.getElementById('resourceSelect');
+    const fieldContainer = document.getElementById('fieldContainer');
+    const jsonOutput = document.getElementById('jsonOutput');
+    const urlOutput = document.getElementById('urlOutput');
+    const toolsWrapper = document.getElementById('toolsWrapper');
+    const fieldCountLabel = document.getElementById('fieldCount');
+    const csvPreview = document.getElementById('csvPreview');
+
+    // Initialize Dropdown
+    Object.keys(RESOURCES).forEach(key => {
+        const option = document.createElement('option');
+        option.value = key;
+        option.textContent = RESOURCES[key].label;
+        resourceSelect.appendChild(option);
+    });
+
+    // Handle Resource Change
+    resourceSelect.addEventListener('change', (e) => {
+        const key = e.target.value;
+        const schema = RESOURCES[key];
+        
+        // Update URL
+        urlOutput.textContent = `https://api.placements.io/v1/${schema.endpoint}/{{id}}`;
+        
+        // Reset UI
+        fieldContainer.innerHTML = '';
+        toolsWrapper.style.display = 'flex';
+        document.getElementById('fieldSearch').value = ''; 
+
+        // Populate Fields
+        schema.fields.forEach(field => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'field-item';
+            wrapper.dataset.name = field.toLowerCase(); 
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `field-${field}`;
+            checkbox.value = field;
+            checkbox.addEventListener('change', updateOutputs);
+
+            const label = document.createElement('label');
+            label.htmlFor = `field-${field}`;
+            label.textContent = field;
+
+            wrapper.appendChild(checkbox);
+            wrapper.appendChild(label);
+            fieldContainer.appendChild(wrapper);
+        });
+        
+        fieldCountLabel.textContent = `${schema.fields.length} attributes`;
+        updateOutputs();
+    });
+
+    // Filter Function
+    function filterFields() {
+        const term = document.getElementById('fieldSearch').value.toLowerCase();
+        const items = document.querySelectorAll('.field-item');
+
+        items.forEach(item => {
+            item.style.display = item.dataset.name.includes(term) ? 'flex' : 'none';
+        });
+    }
+
+    // Main Update Function
+    function updateOutputs() {
+        const key = resourceSelect.value;
+        if (!key) return;
+
+        const schema = RESOURCES[key];
+        const checkedBoxes = fieldContainer.querySelectorAll('input[type="checkbox"]:checked');
+        
+        // 1. Build JSON Attributes
+        const attributes = {};
+        const csvHeaders = ['id']; // Always start with ID for the URL parameter
+
+        checkedBoxes.forEach(box => {
+            // Add to JSON
+            attributes[box.value] = `{{${box.value}}}`;
+            // Add to CSV Headers (skip ID if it's already there to avoid duplicate)
+            if (box.value !== 'id') {
+                csvHeaders.push(box.value);
+            }
+        });
+
+        // 2. Update JSON Output
+        const payload = {
+            data: {
+                id: "{{id}}",
+                type: schema.type,
+                attributes: attributes
+            }
+        };
+        jsonOutput.value = JSON.stringify(payload, null, 2);
+
+        // 3. Update CSV Preview text
+        csvPreview.textContent = csvHeaders.join(', ');
+    }
+
+    // Generate and Download CSV
+    function downloadCSV() {
+        const key = resourceSelect.value;
+        if (!key) {
+            alert("Please select a resource first.");
+            return;
+        }
+
+        // Re-calculate headers to be safe
+        const checkedBoxes = fieldContainer.querySelectorAll('input[type="checkbox"]:checked');
+        const csvHeaders = ['id'];
+        checkedBoxes.forEach(box => {
+            if (box.value !== 'id') csvHeaders.push(box.value);
+        });
+
+        // Create CSV Content
+        const csvContent = csvHeaders.join(',') + '\n'; // Header row only
+
+        // Create Blob
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        
+        // Trigger Download
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `placements_io_${key}_template.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // Helper: Select/Clear all
+    function toggleAll(state) {
+        const items = document.querySelectorAll('.field-item');
+        items.forEach(item => {
+            if (item.style.display !== 'none') {
+                const checkbox = item.querySelector('input');
+                checkbox.checked = state;
+            }
+        });
+        updateOutputs();
+    }
+
+    // Helper: Copy to clipboard
+    function copyToClipboard(elementId) {
+        const el = document.getElementById(elementId);
+        let text = el.tagName === 'TEXTAREA' ? el.value : el.textContent;
+        
+        navigator.clipboard.writeText(text).then(() => {
+            const btn = document.activeElement;
+            const originalText = btn.textContent;
+            btn.textContent = 'Copied!';
+            setTimeout(() => btn.textContent = originalText, 1500);
+        });
+    }
+</script>
+
+</body>
+</html>
